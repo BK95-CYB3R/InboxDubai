@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Messenger 9:16 - Bayu Kurniawan PATEN</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+    :root {
+        --received-gray: #E4E6EB;
+        --online-green: #31A24C;
+        --ios-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+        --messenger-blue: #0109B2; 
+        --sent-bubble-blue: #0623c7;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--ios-font); -webkit-font-smoothing: antialiased; }
+    body { background-color: #d1d4d9; display: flex; flex-direction: column; align-items: center; padding: 10px; }
+
+    /* Control Panel */
+    .control-panel { 
+        background: #fff; padding: 15px; border-radius: 15px; 
+        width: 100%; max-width: 375px; display: flex; 
+        flex-direction: column; gap: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
+        margin-bottom: 20px; border: 1px solid #e0e0e0;
+    }
+    .panel-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-group label { font-size: 10px; font-weight: 600; color: #8e8e93; text-transform: uppercase; margin-bottom: 3px; display: block; }
+    .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #efeff4; border-radius: 10px; outline: none; font-size: 13px; background: #f9f9f9; }
+    .btn-save { background: var(--messenger-blue); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 13px; margin-top: 5px; }
+    .btn-toggle { background: #8e8e93; color: white; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; width: 100%; }
+
+    /* Capture Area 9:16 */
+    #capture-area { 
+        width: 375px; height: 667px; background: #fff; 
+        display: flex; flex-direction: column; 
+        position: relative; overflow: hidden;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    }
+
+    /* Watermark Layer */
+    .security-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; pointer-events: none; display: flex; flex-direction: column; }
+    
+    .wm-corner-indo { 
+        position: absolute; top: 75px; left: 15px; 
+        font-size: 9px; font-weight: 800; line-height: 1.4;
+        color: rgba(255, 59, 48, 0.6); 
+        border: 2px solid rgba(255, 59, 48, 0.5); 
+        padding: 6px 10px;
+        border-radius: 5px;
+        text-align: center;
+        transform: rotate(-6deg); 
+        letter-spacing: 0.5px;
+        z-index: 10001;
+    }
+
+    /* PERUBAHAN: Gaya untuk watermark garis tipis kecil di top dan bawah header */
+    .wm-line-thin {
+        position: absolute;
+        width: 100%;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: rgba(0,0,0,0.1); /* Tipis saja */
+        font-weight: 700;
+        font-size: 8px; /* KECIL */
+    }
+
+    /* Penempatan spesifik */
+    .wm-top-line { top: 3px; }
+    .wm-header-sub-line { top: 60px; } /* Tepat di bawah header */
+
+    /* PERUBAHAN: Menghapus wm-center-box-container karena tidak dipakai lagi */
+
+    /* Header */
+    .header { 
+        display: flex; 
+        align-items: center; 
+        padding: 12px 12px 8px;
+        background: #fff; 
+        border-bottom: 0.5px solid rgba(0,0,0,0.08); 
+        z-index: 1000; 
+    }
+    .back-btn { color: var(--messenger-blue); font-size: 20px; margin-right: 15px; }
+    .p-wrapper { position: relative; width: 34px; height: 34px; }
+    .p-img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+    .online-indicator { position: absolute; width: 10px; height: 10px; background: var(--online-green); border: 2px solid #fff; border-radius: 50%; bottom: 0; right: 0; }
+    .u-info { flex: 1; margin-left: 10px; }
+    .u-info h4 { font-size: 15px; font-weight: 700; color: #000; }
+    .u-info p { font-size: 11px; color: #8e8e93; }
+    .h-icons { display: flex; gap: 18px; color: var(--messenger-blue); font-size: 17px; }
+
+    /* Chat Body & Bubble Alignment */
+    .chat-body { flex: 1; padding: 10px 12px; overflow-y: auto; display: flex; flex-direction: column; background: #fff; gap: 4px; }
+    .msg-row { display: flex; flex-direction: column; position: relative; margin-bottom: 8px; }
+    .msg-row.sent { align-items: flex-end; }
+    
+    .msg-row.received { align-items: flex-start; padding-left: 38px; }
+    .chat-ava-container { 
+        position: absolute; 
+        left: 0; 
+        bottom: 2px;
+        width: 28px; 
+        height: 28px; 
+    }
+    .row-avatar-chat { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+    .chat-online-dot { 
+        position: absolute; 
+        width: 10px; 
+        height: 10px; 
+        background: var(--online-green); 
+        border: 2px solid #fff; 
+        border-radius: 50%; 
+        bottom: 0; 
+        right: 0; 
+        display: none; 
+    }
+
+    .bubble { padding: 8px 14px; font-size: 14.5px; max-width: 75%; line-height: 1.35; border-radius: 18px; }
+    .sent .bubble { background: var(--sent-bubble-blue); color: #fff; border-bottom-right-radius: 4px; }
+    .received .bubble { background: var(--received-gray); color: #000; border-bottom-left-radius: 4px; }
+    .chat-img { max-width: 180px; max-height: 250px; border-radius: 14px; display: block; object-fit: contain; }
+    .msg-status-text { font-size: 9px; color: #8e8e93; margin-top: 3px; font-weight: 500; }
+    .seen-img { width: 13px; height: 13px; border-radius: 50%; object-fit: cover; margin-top: 3px; }
+
+    /* Footer */
+    .footer { padding: 8px 12px 15px; display: flex; align-items: center; gap: 10px; background: #fff; border-top: 0.5px solid rgba(0,0,0,0.05); }
+    .f-icons { display: flex; gap: 15px; color: var(--messenger-blue); font-size: 18px; }
+    .in-box { flex: 1; background: #F0F2F5; border-radius: 20px; padding: 7px 14px; color: #8e8e93; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="control-panel">
+    <div style="text-align: center; margin-bottom: 5px;"><h2 style="font-size: 14px; color: var(--messenger-blue);">BK DUBAI PRO PANEL</h2></div>
+    <div class="panel-row">
+        <div class="form-group"><label>Nama Target</label><input type="text" id="nameInp" value="Bayu Kurniawan"></div>
+        <div class="form-group"><label>Foto Profil Target</label><input type="file" id="picInp" accept="image/*"></div>
+    </div>
+    <div class="panel-row">
+        <div class="form-group"><label>Kirim Sebagai</label><select id="senderSel"><option value="received">Target (Kiri)</option><option value="sent">Saya (Kanan)</option></select></div>
+        <div class="form-group">
+            <label>Status Aktif</label>
+            <select id="statusInp">
+                <option value="Sedang aktif">Sedang aktif</option>
+                <option value="Aktif 10 mnt lalu">Aktif 10 mnt lalu</option>
+                <option value="Aktif 20 mnt lalu">Aktif 20 mnt lalu</option>
+                <option value="Aktif 30 mnt lalu">Aktif 30 mnt lalu</option>
+                <option value="Aktif 40 mnt lalu">Aktif 40 mnt lalu</option>
+                <option value="Aktif 50 mnt lalu">Aktif 50 mnt lalu</option>
+                <option value="Aktif 1 jam lalu">Aktif 1 jam lalu</option>
+            </select>
+        </div>
+    </div>
+    <div class="panel-row">
+        <div class="form-group"><label>Kirim Gambar</label><input type="file" id="imgChatInp" accept="image/*"></div>
+        <div class="form-group"><label>Status Pesan</label><select id="msgStatusInp"><option value="">Kosong</option><option value="Terkirim">Terkirim</option><option value="Dilihat">Dilihat</option></select></div>
+    </div>
+    <div class="panel-row">
+        <div class="form-group"><label>WM Pojok</label><button class="btn-toggle" onclick="toggleWM('corner')">Hide / Show</button></div>
+        <div class="form-group"><label>WM Tengah</label><button class="btn-toggle" onclick="toggleWM('center')">Hide / Show</button></div>
+    </div>
+    <button class="btn-save" id="btnSave">Simpan Screenshot HD</button>
+</div>
+
+<div id="capture-area">
+    <div class="security-layer">
+        <div class="wm-corner-indo" id="wmCorner">
+            DILARANG REPOST ATAU COPY<br>
+            FB BAYU KURNIAWAN/BAYU DUBAI
+        </div>
+        
+        <div class="wm-line-thin wm-top-line" id="wmTopLine">FB: BAYU KURNIAWAN/BAYU DUBAI</div>
+        <div class="wm-line-thin wm-header-sub-line" id="wmHeaderSubLine"></div>
+    </div>
+
+    <div class="header">
+        <i class="fa-solid fa-chevron-left back-btn"></i>
+        <div class="p-wrapper">
+            <img src="https://i.pravatar.cc/150?u=bayu" class="p-img" id="headPic">
+            <div class="online-indicator" id="headerDot"></div>
+        </div>
+        <div class="u-info">
+            <h4 id="headName">Bayu Kurniawan</h4>
+            <p id="headStatus">Sedang aktif</p>
+        </div>
+        <div class="h-icons"><i class="fa-solid fa-phone"></i><i class="fa-solid fa-video"></i><i class="fa-solid fa-circle-info"></i></div>
+    </div>
+    
+    <div class="chat-body" id="chatBody"></div>
+
+    <div class="footer">
+        <div class="f-icons"><i class="fa-solid fa-circle-plus"></i><i class="fa-solid fa-camera"></i><i class="fa-regular fa-image"></i></div>
+        <div class="in-box" id="msgInputTrigger">Tulis pesan...</div>
+        <i class="fa-solid fa-thumbs-up" style="color: var(--messenger-blue); font-size: 22px;"></i>
+    </div>
+</div>
+
+<script>
+    const chatBody = document.getElementById('chatBody'), senderSel = document.getElementById('senderSel'), nameInp = document.getElementById('nameInp'), headPic = document.getElementById('headPic'), picInp = document.getElementById('picInp'), imgChatInp = document.getElementById('imgChatInp'), statusInp = document.getElementById('statusInp'), headerDot = document.getElementById('headerDot'), msgStatusInp = document.getElementById('msgStatusInp');
+
+    // PERUBAHAN: Menyesuaikan fungsi toggle agar mengontrol kedua watermark garis baru
+    function toggleWM(type) {
+        if(type === 'corner') {
+            const el = document.getElementById('wmCorner');
+            el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+        } else {
+            const wm1 = document.getElementById('wmTopLine');
+            const wm2 = document.getElementById('wmHeaderSubLine');
+            const newStatus = (wm1.style.display === 'none') ? 'block' : 'none';
+            wm1.style.display = newStatus;
+            wm2.style.display = newStatus;
+        }
+    }
+
+    nameInp.oninput = () => {
+        document.getElementById('headName').innerText = nameInp.value;
+    };
+
+    statusInp.onchange = () => {
+        const val = statusInp.value;
+        document.getElementById('headStatus').innerText = val;
+        const isOnline = (val === "Sedang aktif");
+        headerDot.style.display = isOnline ? "block" : "none";
+        document.querySelectorAll('.chat-online-dot').forEach(dot => {
+            dot.style.display = isOnline ? "block" : "none";
+        });
+    };
+
+    picInp.onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            headPic.src = reader.result;
+            document.querySelectorAll('.row-avatar-chat, .seen-img').forEach(img => img.src = reader.result);
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    };
+
+    function addChat(content, type, isImg = false) {
+        const row = document.createElement('div'); 
+        row.className = `msg-row ${type}`;
+        
+        if (type === 'received') { 
+            const avaCont = document.createElement('div');
+            avaCont.className = 'chat-ava-container';
+            const ava = document.createElement('img'); 
+            ava.src = headPic.src; ava.className = 'row-avatar-chat';
+            
+            const dot = document.createElement('div');
+            dot.className = 'chat-online-dot';
+            dot.style.display = (statusInp.value === "Sedang aktif") ? "block" : "none";
+            
+            avaCont.appendChild(ava);
+            avaCont.appendChild(dot);
+            row.appendChild(avaCont);
+        }
+
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        if(isImg) {
+            bubble.innerHTML = `<img src="${content}" class="chat-img">`;
+            bubble.style.background = "transparent"; bubble.style.padding = "0";
+        } else { bubble.innerText = content; }
+        
+        row.appendChild(bubble);
+
+        if (type === 'sent') {
+            if (msgStatusInp.value === 'Terkirim') {
+                const s = document.createElement('div');
+                s.className = 'msg-status-text'; s.innerText = 'Terkirim';
+                row.appendChild(s);
+            } else if (msgStatusInp.value === 'Dilihat') {
+                const img = document.createElement('img');
+                img.src = headPic.src; img.className = 'seen-img';
+                row.appendChild(img);
+            }
+        }
+        
+        chatBody.appendChild(row);
+        chatBody.scrollTop = chatBody.scrollHeight;
+        bubble.onclick = () => { if(confirm("Hapus pesan?")) row.remove(); };
+    }
+
+    document.getElementById('msgInputTrigger').onclick = () => {
+        const txt = prompt("Ketik pesan:");
+        if(txt) addChat(txt, senderSel.value);
+    };
+
+    imgChatInp.onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = () => addChat(reader.result, senderSel.value, true);
+        reader.readAsDataURL(e.target.files[0]);
+    };
+
+    document.getElementById('btnSave').onclick = () => {
+        html2canvas(document.getElementById('capture-area'), { scale: 3, useCORS: true }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `BK_DUBAI_PATEN.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        });
+    };
+</script>
+</body>
+</html>
